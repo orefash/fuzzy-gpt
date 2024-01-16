@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv/
+env/
+
+# Virtual environment
+venv/
+
+# IDEs
+.idea/
+.vscode/
+
+# Operating system-specific files
+*.DS_Store
+
+# Logs
+*.log
+
+# Build artifacts
+build/
+dist/
+
+# Documentation
+docs/_build/
+
+# Testing
+.pytest_cache/
+
+# Coverage reports
+.coverage
+
+# Other
+*.egg-info/
+.installed.cfg
+*.mo
+*.pot
+.local/
