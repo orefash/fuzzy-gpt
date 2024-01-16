@@ -5,7 +5,6 @@ import json
 import requests
 import redis
 
-os.environ['OPENAI_API_KEY'] = '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'
 
 functions = [
     {

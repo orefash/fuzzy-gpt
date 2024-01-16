@@ -4,7 +4,11 @@ from flask import Flask, request, jsonify
 from custom import get_response
 from dotenv.main import load_dotenv
 import os
-# os.environ["OPENAI_API_KEY"] = "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"
+
+
+openai_api_key = os.environ.get("OPENAI_API_KEY")
+
+print("key: ", openai_api_key)
 
 load_dotenv()
 
