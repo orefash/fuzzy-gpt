@@ -5,6 +5,12 @@ import json
 import requests
 import redis
 
+os.environ['MANYCHAT_KEY'] = '376259:06deb193ce1ffafcf0db8e6adeb1ed3d'
+apiUrl =  os.getenv("API_URL")
+
+# print("mk: ", manychatKEY)
+print("api_url: ", apiUrl)
+
 
 functions = [
     {
@@ -142,6 +148,9 @@ functions = [
 # import openai
 # import json
 
+flow_id = "content20240121115201_780259"
+
+
 class ChatBot:
 
     def __init__(self, database):
@@ -153,10 +162,12 @@ class ChatBot:
 
 
 
-    def chat(self, query):
+    def chat(self, query, contactId=None):
         initial_response = self.make_openai_request(query)
 
         message = initial_response["choices"][0]["message"]
+
+        respData = {}
 
         if message.get("function_call"):
             print("msg: ", message)
@@ -172,13 +183,15 @@ class ChatBot:
                 print("mid: ", arguments["merchant_identifier"])
 
                 if arguments["email"]:
-                    function_response = getattr(self, function_name)(**arguments)
-                    return function_response['msg']
+                    function_response = self.pay_merchant(arguments["amount"], arguments["merchant_identifier"], arguments["email"], contactId)
+                    return function_response
                 else:
                     self.redis_db.set("p_function", function_name)
                     self.redis_db.set("pay_amount", arguments["amount"])
                     self.redis_db.set("m_id", arguments["merchant_identifier"])
-                    return "Please provide your email address"
+                    return {
+                        "msg": "Please provide your email address"
+                    }
 
             if function_name == 'get_user_info' and arguments["email"]:
                 try:
@@ -187,19 +200,17 @@ class ChatBot:
                     print("amount: ", self.redis_db.get("pay_amount").decode("utf-8"))
 
                     if self.redis_db.get("m_id").decode("utf-8") and self.redis_db.get("pay_amount").decode("utf-8"):
-                        function_response = self.pay_merchant(self.redis_db.get("pay_amount").decode("utf-8"), self.redis_db.get("m_id").decode("utf-8"), arguments["email"])
-                        return function_response['msg']
+                        function_response = self.pay_merchant(self.redis_db.get("pay_amount").decode("utf-8"), self.redis_db.get("m_id").decode("utf-8"), arguments["email"], contactId)
+                        return function_response
                     else:
-                        return "I encountered an error please make your request again"
-                except:
-                    return "I encountered an error please make your request again"
-
-
-
-
-
-
-
+                        return {
+                            "msg": "I encountered an error please make your request again"
+                        }
+                except Exception as error:
+                    print("redis error: ", error)
+                    return {
+                            "msg": "I encountered an error please make your request again"
+                        }
 
 
             function_response = getattr(self, function_name)(**arguments)
@@ -207,9 +218,13 @@ class ChatBot:
             # print("fn resp: ", function_response)
 
             follow_up_response = self.make_follow_up_request(query, message, function_name, function_response)
-            return follow_up_response["choices"][0]["message"]["content"]
+            return {
+                "msg": follow_up_response["choices"][0]["message"]["content"]
+            }
         else:
-            return message["content"]
+            return {
+                "msg": message["content"]
+            }
 
     def make_openai_request(self, query):
         response = openai.ChatCompletion.create(
@@ -338,9 +353,13 @@ class ChatBot:
         merchant_details = "\n".join([f"Merchant: {merchant['name']}, ID: {merchant['id']}" for merchant in merchants])
         return merchant_details
 
-    def get_pay_link(self, email, amount):
+    def get_pay_link(self, email, amount, cid):
         purl = "https://api.paystack.co/transaction/initialize"
-        data = {"amount": int(amount)*100, "email": email}
+        data = {
+            "amount": int(amount)*100, 
+            "email": email,
+            "callback_url": f"{apiUrl}/manychat-callback/user/{cid}"                                                                                                                                                                                                                                                                                                                                                                                                                               
+            } 
         print("pld: ", data)
         headers = {
             "Authorization": f"Bearer sk_test_de93288b38ea5cbd9b946c34ef92308cfe7d32b8"  # Replace with your actual token
@@ -357,7 +376,7 @@ class ChatBot:
             print("Error:", response)
             return None
 
-    def pay_merchant(self, amount, merchant_identifier, email):
+    def pay_merchant(self, amount, merchant_identifier, email, cid):
         merchant = self.get_merchant(merchant_identifier)
 
         print("merchant: ", merchant)
@@ -365,12 +384,13 @@ class ChatBot:
         resp_data = {}
 
         if merchant:
-            pay_response = self.get_pay_link(email=email, amount=amount)
+            pay_response = self.get_pay_link(email=email, amount=amount, cid=cid)
             if pay_response and pay_response['status'] == True:
                 print('in success generate')
                 checkout_url = pay_response['data']['authorization_url']
                 resp_data["msg"] = f"please visit this url {checkout_url} to make Payment of NGN {amount} to {merchant['name']}."
                 resp_data["success"] = False
+                resp_data["data"] = pay_response['data']
             else:
                 resp_data["msg"] = "Error generating checkout page"
                 resp_data["success"] = False
@@ -434,8 +454,8 @@ database = {
 
 bot = ChatBot(database=database)
 
-def get_response(query):
-    response = bot.chat(query)
+def get_response(query, contactId = None):
+    response = bot.chat(query, contactId)
     print("Query: ", query)
     print("Response: ", response)
     return response
