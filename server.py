@@ -8,9 +8,6 @@ from manychat import sendFlow
 from paystack import verifyPayments
 
 
-openai_api_key = os.environ.get("OPENAI_API_KEY")
-
-print("key: ", openai_api_key)
 
 load_dotenv()
 
