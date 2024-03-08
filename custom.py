@@ -6,6 +6,8 @@ import requests
 import redis
 
 os.environ['MANYCHAT_KEY'] = '376259:06deb193ce1ffafcf0db8e6adeb1ed3d'
+os.environ['OPENAI_API_KEY'] = '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'
+
 apiUrl =  os.getenv("API_URL")
 
 # print("mk: ", manychatKEY)

@@ -6,7 +6,8 @@ import requests
 flow_id = "content20240121115201_780259"
 manychatKEY = os.getenv("MANYCHAT_KEY")
 # apiUrl = 1028541149
-apiUrl =  os.getenv("API_URL")
+apiUrl =  "http://fash1.pythonanywhere.com"
+# apiUrl =  os.getenv("API_URL")http://fash1.pythonanywhere.com/
 
 print("mk: ", manychatKEY)
 print("api_url: ", apiUrl)
